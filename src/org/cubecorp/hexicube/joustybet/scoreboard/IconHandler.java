@@ -1,4 +1,4 @@
-package org.tilegames.hexicube.joustybet.scoreboard;
+package org.cubecorp.hexicube.joustybet.scoreboard;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;

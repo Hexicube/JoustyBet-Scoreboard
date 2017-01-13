@@ -1,4 +1,4 @@
-package org.tilegames.hexicube.joustybet.scoreboard;
+package org.cubecorp.hexicube.joustybet.scoreboard;
 
 import com.badlogic.gdx.graphics.Color;
 
