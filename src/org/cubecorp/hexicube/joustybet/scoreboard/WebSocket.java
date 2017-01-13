@@ -107,21 +107,27 @@ public class WebSocket extends Socket
 					//Bits 2/3/4 are typically not used, so we're ignoring them.
 					val = val & 0xF;
 					
-					//TODO: Close connection if first is continuation or if non-first is not continuation/control.
 					if(val == 0) //continuation
 					{
-						if(finalFragment) expecting = false;
+						if(finalFragment)
+						{
+							if(first) throw new IOException("Received continuation frame as the first frame");
+							expecting = false;
+						}
 					}
 					else if(val == 1) //text
 					{
+						if(!first) throw new IOException("Received text frame after the first frame");
 						if(finalFragment) expecting = false;
 					}
 					else if(val == 2) //binary
 					{
+						if(!first) throw new IOException("Received binary frame after the first frame");
 						if(finalFragment) expecting = false;
 					}
 					else if(val > 2 && val < 8) //other non-control
 					{
+						if(!first) throw new IOException("Received other non-control frame after the first frame");
 						if(finalFragment) expecting = false;
 					}
 					else if(val == 8) //close

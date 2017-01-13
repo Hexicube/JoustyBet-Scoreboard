@@ -104,26 +104,33 @@ public class Game implements ApplicationListener
 			setData(setName(b, "User " + (a+1)), score, (score==total)?score:(r.nextInt(score/8+1)), total);
 		}
 		
-		new Thread(){
-			@SuppressWarnings("resource")
+		//TODO: uncomment when testing connection stuff
+		/*new Thread(){
 			@Override
 			public void run()
 			{
 				WebSocket sock = null;
 				try
 				{
+					//TODO: point to the correct server
 					sock = new WebSocket("echo.websocket.org", 80, "http://echo.websocket.org/?encoding=text", "permessage-deflate");
 				}
 				catch(IOException e)
 				{
 					e.printStackTrace();
+					System.out.println("A fatal error occurred!");
 					System.exit(0);
 				}
 				BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-				while(true)
+				try
 				{
-					try
+					while(true)
 					{
+						if(sock.isClosed())
+						{
+							System.out.println("Socket has been closed!");
+							System.exit(0);
+						}
 						while(!in.ready())
 						{
 							try{Thread.sleep(1);}catch(InterruptedException e){}
@@ -171,13 +178,23 @@ public class Game implements ApplicationListener
 							}
 						}
 					}
-					catch(IOException e)
+				}
+				catch(IOException e)
+				{
+					e.printStackTrace();
+					try
 					{
-						e.printStackTrace();
+						sock.close();
 					}
+					catch(IOException e2)
+					{
+						e2.printStackTrace();
+					}
+					System.out.println("A fatal error occurred!");
+					System.exit(0);
 				}
 			}
-		}.start();
+		}.start();*/
 	}
 	
 	@Override
@@ -203,6 +220,7 @@ public class Game implements ApplicationListener
 				handleRoundEnd();
 			}
 			else handleRoundStart();
+			needsRendering = true;
 		}
 		if(!roundActive && counter > 5)
 		{
@@ -378,7 +396,8 @@ public class Game implements ApplicationListener
 				
 				if(lastWinner != null)
 				{
-					//TODO: show last winner
+					spriteBatch.setColor(Color.BLACK);
+					FontHolder.render(spriteBatch, FontHolder.getCharList("Previous winner: "+lastWinner), 276, 212, true);
 				}
 			}
 			
@@ -410,7 +429,6 @@ public class Game implements ApplicationListener
 			b.guessed = false;
 		}
 		lastWinner = null;
-		needsRendering = true;
 	}
 	
 	private static void handleRoundEnd()
@@ -437,12 +455,12 @@ public class Game implements ApplicationListener
 			else b.guessed = false;
 			b.guess = null;
 		}
-		needsRendering = true;
 	}
 	
 	@Override
 	public void resize(int width, int height)
 	{
+		//Shouldn't get called, but if it does this will prevent stretching.
 		spriteBatch = new SpriteBatch();
 	}
 	
@@ -473,11 +491,6 @@ public class Game implements ApplicationListener
 		}
 		if(dec > 0) result += "."+String.valueOf(dec).substring(2);
 		return result;
-	}
-	
-	public static int nextPowerTwo(int val)
-	{
-		return (int) Math.pow(2, Math.ceil(Math.log(val) / Math.log(2)));
 	}
 	
 	public static Better find(String id)
