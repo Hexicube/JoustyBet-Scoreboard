@@ -9,6 +9,8 @@ public class DesktopStarter
 	
 	public static void main(String[] args)
 	{
+		LwjglApplicationConfiguration.disableAudio = true;
+		
 		config = new LwjglApplicationConfiguration();
 		config.title = "Loading...";
 		config.width = 800;

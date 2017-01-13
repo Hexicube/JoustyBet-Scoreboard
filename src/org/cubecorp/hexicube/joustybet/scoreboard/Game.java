@@ -128,37 +128,50 @@ public class Game implements ApplicationListener
 						{
 							try{Thread.sleep(1);}catch(InterruptedException e){}
 						}
-						String inLine = in.readLine();
-						inLine = inLine.substring(0, inLine.length() - 1); //remove new-line at end
-						if(inLine.equals("update")) needsRendering = true;
-						else if(inLine.equals("roundstart")) handleRoundStart();
-						else
+						synchronized(betters)
 						{
-							String[] data = inLine.split(" ");
-							if(data[0].equals("winner"))
+							for(String inLine : in.readLine().split("\n"))
 							{
-								lastWinner = PlayerCol.valueOf(data[1]);
-								handleRoundEnd();
+								if(inLine.equals("")) continue;
+								
+								try
+								{
+									if(inLine.equals("update")) needsRendering = true;
+									else if(inLine.equals("roundstart")) handleRoundStart();
+									else
+									{
+										String[] data = inLine.split(" ");
+										if(data[0].equals("winner"))
+										{
+											lastWinner = PlayerCol.valueOf(data[1]);
+											handleRoundEnd();
+										}
+										else if(data[0].equals("name"))
+										{
+											String name = data[2];
+											for(int a = 3; a < data.length; a++) name += " " + data[a];
+											Game.setName(find(data[1]), name);
+										}
+										else if(data[0].equals("data"))
+										{
+											Game.setData(find(data[1]), Integer.parseInt(data[2]), Integer.parseInt(data[4]), Integer.parseInt(data[3]));
+										}
+										else if(data[0].equals("guess"))
+										{
+											PlayerCol guess = PlayerCol.valueOf(data[2]);
+											find(data[1]).guess = guess;
+										}
+										else System.out.println("Unknown command: " + data[0]);
+									}
+								}
+								catch(NumberFormatException e)
+								{
+									e.printStackTrace();
+								}
 							}
-							else if(data[0].equals("name"))
-							{
-								String name = data[2];
-								for(int a = 3; a < data.length; a++) name += " " + data[a];
-								Game.setName(find(data[1]), name);
-							}
-							else if(data[0].equals("data"))
-							{
-								Game.setData(find(data[1]), Integer.parseInt(data[2]), Integer.parseInt(data[4]), Integer.parseInt(data[3]));
-							}
-							else if(data[0].equals("guess"))
-							{
-								PlayerCol guess = PlayerCol.valueOf(data[2]);
-								find(data[1]).guess = guess;
-							}
-							else System.out.println("Unknown command: " + data[0]);
 						}
 					}
-					catch(IOException | NumberFormatException e)
+					catch(IOException e)
 					{
 						e.printStackTrace();
 					}
@@ -206,170 +219,173 @@ public class Game implements ApplicationListener
 		
 		if(!needsRendering) return;
 		
-		needsRendering = false;
-		
-		spriteBatch.begin();
-		spriteBatch.setColor(Color.WHITE);
-		spriteBatch.draw(background, 0, 0);
-		
-		betters.sort(betters.get(0));
-		betters.sort(null);
-		
-		int numToShow = Math.min(15, betters.size());
-		if(numToShow > 0)
+		synchronized(betters)
 		{
-			float topAcc, bottomAcc;
-			topAcc = betters.get(0).uncertaintyAcc;
-			bottomAcc = betters.get(numToShow - 1).uncertaintyAcc;
-			float halfAcc = (topAcc + bottomAcc) / 2;
-			float topHalfAcc = (topAcc*3 + bottomAcc) / 4;
-			float bottomHalfAcc = (bottomAcc*3 + topAcc) / 4;
-			for(int a = 0; a < 15; a++)
-			{
-				if(a < numToShow)
-				{
-					Better b = betters.get(a);
-					float acc = b.uncertaintyAcc;
-					
-					int tier;
-					if(acc >= topAcc) tier = 4;
-					else if(acc >= topHalfAcc) tier = 3;
-					else if(acc >= halfAcc) tier = 2;
-					else if(acc >= bottomHalfAcc) tier = 1;
-					else tier = 0;
-					
-					int place = a;
-					for(int z = a; z >= 0; z--)
-					{
-						if(betters.get(z).uncertaintyAcc == acc) place = z;
-						else break;
-					}
-					
-					accuracyIcons[tier].render(spriteBatch, icons, 229, 549 - a*38);
-					placeIcons[place].render(spriteBatch, icons, 23, 558 - a*38);
-					((b.guessed && b.correct)?upArrowLit:upArrow).render(spriteBatch, icons, 18, 569 - a*38);
-					((b.guessed && !b.correct)?downArrowLit:downArrow).render(spriteBatch, icons, 18, 550 - a*38);
-					printData(spriteBatch, b, 23, 549 - a*38);
-				}
-				else
-				{
-					upArrow.render(spriteBatch, icons, 18, 569 - a*38);
-					downArrow.render(spriteBatch, icons, 18, 550 - a*38);
-					chainIcons[0].render(spriteBatch, icons, 749, 549 - a*38);
-				}
-			}
+			spriteBatch.begin();
+			spriteBatch.setColor(Color.WHITE);
+			spriteBatch.draw(background, 0, 0);
 			
 			betters.sort(betters.get(0));
+			betters.sort(null);
 			
-			int topChain, bottomChain;
-			topChain = betters.get(0).streak;
-			bottomChain = betters.get(numToShow - 1).streak;
-			int halfChain = (topChain + bottomChain) / 2;
-			int topHalfChain = (topChain * 3 + bottomChain) / 4;
-			int bottomHalfChain = (topChain + bottomChain * 3) / 4;
-			for(int a = 0; a < 15; a++)
+			int numToShow = Math.min(15, betters.size());
+			if(numToShow > 0)
 			{
-				if(a < numToShow)
+				float topAcc, bottomAcc;
+				topAcc = betters.get(0).uncertaintyAcc;
+				bottomAcc = betters.get(numToShow - 1).uncertaintyAcc;
+				float halfAcc = (topAcc + bottomAcc) / 2;
+				float topHalfAcc = (topAcc*3 + bottomAcc) / 4;
+				float bottomHalfAcc = (bottomAcc*3 + topAcc) / 4;
+				for(int a = 0; a < 15; a++)
 				{
-					Better b = betters.get(a);
-					int chain = b.streak;
-					if(chain < 2) //Limit chain list to actual chains
+					if(a < numToShow)
+					{
+						Better b = betters.get(a);
+						float acc = b.uncertaintyAcc;
+						
+						int tier;
+						if(acc >= topAcc) tier = 4;
+						else if(acc >= topHalfAcc) tier = 3;
+						else if(acc >= halfAcc) tier = 2;
+						else if(acc >= bottomHalfAcc) tier = 1;
+						else tier = 0;
+						
+						int place = a;
+						for(int z = a; z >= 0; z--)
+						{
+							if(betters.get(z).uncertaintyAcc == acc) place = z;
+							else break;
+						}
+						
+						accuracyIcons[tier].render(spriteBatch, icons, 229, 549 - a*38);
+						placeIcons[place].render(spriteBatch, icons, 23, 558 - a*38);
+						((b.guessed && b.correct)?upArrowLit:upArrow).render(spriteBatch, icons, 18, 569 - a*38);
+						((b.guessed && !b.correct)?downArrowLit:downArrow).render(spriteBatch, icons, 18, 550 - a*38);
+						printData(spriteBatch, b, 23, 549 - a*38);
+					}
+					else
+					{
+						upArrow.render(spriteBatch, icons, 18, 569 - a*38);
+						downArrow.render(spriteBatch, icons, 18, 550 - a*38);
+						chainIcons[0].render(spriteBatch, icons, 749, 549 - a*38);
+					}
+				}
+				
+				betters.sort(betters.get(0));
+				
+				int topChain, bottomChain;
+				topChain = betters.get(0).streak;
+				bottomChain = betters.get(numToShow - 1).streak;
+				int halfChain = (topChain + bottomChain) / 2;
+				int topHalfChain = (topChain * 3 + bottomChain) / 4;
+				int bottomHalfChain = (topChain + bottomChain * 3) / 4;
+				for(int a = 0; a < 15; a++)
+				{
+					if(a < numToShow)
+					{
+						Better b = betters.get(a);
+						int chain = b.streak;
+						if(chain < 2) //Limit chain list to actual chains
+						{
+							upArrow.render(spriteBatch, icons, 538, 569 - a*38);
+							downArrow.render(spriteBatch, icons, 538, 550 - a*38);
+							chainIcons[0].render(spriteBatch, icons, 749, 549 - a*38);
+							continue;
+						}
+						
+						int tier;
+						if(chain >= topChain) tier = 4;
+						else if(chain >= topHalfChain) tier = 3;
+						else if(chain >= halfChain) tier = 2;
+						else if(chain >= bottomHalfChain) tier = 1;
+						else tier = 0;
+						
+						int place = a;
+						for(int z = a; z >= 0; z--)
+						{
+							if(betters.get(z).streak == chain) place = z;
+							else break;
+						}
+						
+						chainIcons[tier].render(spriteBatch, icons, 749, 549 - a*38);
+						placeIcons[place].render(spriteBatch, icons, 543, 558 - a*38);
+						((b.guessed && b.correct)?upArrowLit:upArrow).render(spriteBatch, icons, 538, 569 - a*38);
+						((b.guessed && !b.correct)?downArrowLit:downArrow).render(spriteBatch, icons, 538, 550 - a*38);
+						printData(spriteBatch, b, 543, 549 - a*38);
+					}
+					else
 					{
 						upArrow.render(spriteBatch, icons, 538, 569 - a*38);
 						downArrow.render(spriteBatch, icons, 538, 550 - a*38);
 						chainIcons[0].render(spriteBatch, icons, 749, 549 - a*38);
-						continue;
 					}
-					
-					int tier;
-					if(chain >= topChain) tier = 4;
-					else if(chain >= topHalfChain) tier = 3;
-					else if(chain >= halfChain) tier = 2;
-					else if(chain >= bottomHalfChain) tier = 1;
-					else tier = 0;
-					
-					int place = a;
-					for(int z = a; z >= 0; z--)
-					{
-						if(betters.get(z).streak == chain) place = z;
-						else break;
-					}
-					
-					chainIcons[tier].render(spriteBatch, icons, 749, 549 - a*38);
-					placeIcons[place].render(spriteBatch, icons, 543, 558 - a*38);
-					((b.guessed && b.correct)?upArrowLit:upArrow).render(spriteBatch, icons, 538, 569 - a*38);
-					((b.guessed && !b.correct)?downArrowLit:downArrow).render(spriteBatch, icons, 538, 550 - a*38);
-					printData(spriteBatch, b, 543, 549 - a*38);
 				}
-				else
+				
+				ArrayList<PlayerColCount> counts = new ArrayList<PlayerColCount>();
+				int sum = 0;
+				
+				PlayerCol[] cols = PlayerCol.values();
+				for(PlayerCol c : cols) counts.add(new PlayerColCount(c));
+				for(Better b : betters)
 				{
-					upArrow.render(spriteBatch, icons, 538, 569 - a*38);
-					downArrow.render(spriteBatch, icons, 538, 550 - a*38);
-					chainIcons[0].render(spriteBatch, icons, 749, 549 - a*38);
-				}
-			}
-			
-			ArrayList<PlayerColCount> counts = new ArrayList<PlayerColCount>();
-			int sum = 0;
-			
-			PlayerCol[] cols = PlayerCol.values();
-			for(PlayerCol c : cols) counts.add(new PlayerColCount(c));
-			for(Better b : betters)
-			{
-				if(b.guess != null)
-				{
-					for(int a = 0; a < cols.length; a++)
+					if(b.guess != null)
 					{
-						if(b.guess == cols[a])
+						for(int a = 0; a < cols.length; a++)
 						{
-							for(PlayerColCount c : counts)
+							if(b.guess == cols[a])
 							{
-								if(c.col == cols[a])
+								for(PlayerColCount c : counts)
 								{
-									c.count++;
-									sum++;
-									break;
+									if(c.col == cols[a])
+									{
+										c.count++;
+										sum++;
+										break;
+									}
 								}
 							}
 						}
 					}
 				}
-			}
-			
-			if(roundActive) counts.sort(null);
-			int largest = 0;
-			for(PlayerColCount c : counts) largest = Math.max(largest, c.count);
-			for(int a = 0; a < counts.size(); a++)
-			{
-				PlayerColCount c = counts.get(a);
-				int amount = 254;
-				if(sum > 0) amount = c.count * amount / largest;
 				
-				if(amount > 0)
+				if(roundActive) counts.sort(null);
+				int largest = 0;
+				for(PlayerColCount c : counts) largest = Math.max(largest, c.count);
+				for(int a = 0; a < counts.size(); a++)
 				{
-					spriteBatch.setColor(c.col.col);
-					drawPixel(spriteBatch, 273, 172 - a * 22, amount, 20);
+					PlayerColCount c = counts.get(a);
+					int amount = 254;
+					if(sum > 0) amount = c.count * amount / largest;
 					
-					spriteBatch.setColor(c.col.lightCol);
-					drawPixel(spriteBatch, 273, 173 - a * 22, 1, 19);
-					drawPixel(spriteBatch, 273, 191 - a * 22, amount, 1);
+					if(amount > 0)
+					{
+						spriteBatch.setColor(c.col.col);
+						drawPixel(spriteBatch, 273, 172 - a * 22, amount, 20);
+						
+						spriteBatch.setColor(c.col.lightCol);
+						drawPixel(spriteBatch, 273, 173 - a * 22, 1, 19);
+						drawPixel(spriteBatch, 273, 191 - a * 22, amount, 1);
+						
+						spriteBatch.setColor(c.col.darkCol);
+						drawPixel(spriteBatch, 273, 172 - a * 22, amount-1, 1);
+						drawPixel(spriteBatch, 272 + amount, 172 - a * 22, 1, 19);
+					}
 					
-					spriteBatch.setColor(c.col.darkCol);
-					drawPixel(spriteBatch, 273, 172 - a * 22, amount-1, 1);
-					drawPixel(spriteBatch, 272 + amount, 172 - a * 22, 1, 19);
+					spriteBatch.setColor(c.col.textCol);
+					FontHolder.render(spriteBatch, FontHolder.getCharList(""+c.count), 276, 189 - a*22, true);
 				}
 				
-				spriteBatch.setColor(c.col.textCol);
-				FontHolder.render(spriteBatch, FontHolder.getCharList(""+c.count), 276, 189 - a*22, true);
+				if(lastWinner != null)
+				{
+					//TODO: show last winner
+				}
 			}
 			
-			if(lastWinner != null)
-			{
-				//TODO: show last winner
-			}
+			spriteBatch.end();
 		}
 		
-		spriteBatch.end();
+		needsRendering = false;
 	}
 	
 	private void printData(SpriteBatch batch, Better b, int x, int y)
