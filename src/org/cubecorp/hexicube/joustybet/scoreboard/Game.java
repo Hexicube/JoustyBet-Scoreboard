@@ -168,6 +168,17 @@ public class Game implements ApplicationListener
 											PlayerCol guess = PlayerCol.valueOf(data[2]);
 											find(data[1]).guess = guess;
 										}
+										else if(data[0].equals("drop"))
+										{
+											for(Better b : betters)
+											{
+												if(b.id.equals(data[1]))
+												{
+													betters.remove(b);
+													break;
+												}
+											}
+										}
 										else System.out.println("Unknown command: " + data[0]);
 									}
 								}
@@ -295,9 +306,14 @@ public class Game implements ApplicationListener
 				int topChain, bottomChain;
 				topChain = betters.get(0).streak;
 				bottomChain = betters.get(numToShow - 1).streak;
-				int halfChain = (topChain + bottomChain) / 2;
-				int topHalfChain = (topChain * 3 + bottomChain) / 4;
-				int bottomHalfChain = (topChain + bottomChain * 3) / 4;
+				for(int a = numToShow - 2; a > 0; a--)
+				{
+					if(bottomChain < 2) bottomChain = betters.get(a).streak;
+					else break;
+				}
+				int halfChain = (topChain + bottomChain + 1) / 2;
+				int topHalfChain = (topChain * 3 + bottomChain + 2) / 4;
+				int bottomHalfChain = (topChain + bottomChain * 3 + 2) / 4;
 				for(int a = 0; a < 15; a++)
 				{
 					if(a < numToShow)
@@ -413,9 +429,9 @@ public class Game implements ApplicationListener
 		batch.setColor(Color.WHITE);
 		
 		FontHolder.render(batch, FontHolder.getCharList(b.name), x+35, y+33, true);
-		FontHolder.render(batch, FontHolder.getCharList("Acc: "+b.acc+"%"), x+35, y+18, false);
+		FontHolder.render(batch, FontHolder.getCharList("Acc: "+b.acc+"%"), x+35, y+17, false);
 		FontHolder.render(batch, FontHolder.getCharList("Rating: "+b.uncertaintyAcc+"%"), x+35, y+8, false);
-		FontHolder.render(batch, FontHolder.getCharList("Streak: "+b.streak), x+135, y+18, false);
+		FontHolder.render(batch, FontHolder.getCharList("Streak: "+b.streak), x+135, y+17, false);
 		FontHolder.render(batch, FontHolder.getCharList("Score: "+b.score+"/"+b.total), x+135, y+8, false);
 		
 		batch.setColor(c);
