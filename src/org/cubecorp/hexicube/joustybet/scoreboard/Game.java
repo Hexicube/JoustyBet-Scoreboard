@@ -97,115 +97,116 @@ public class Game implements ApplicationListener
 		
 		for(int a = 0; a < 500; a++)
 		{
-			setName(find(""+a), "User" + (a+1));
 			Better b = find(""+a);
 			int total = r.nextInt(21)+10;
 			int score = r.nextInt(total);
-			setData(setName(b, "User " + (a+1)), score, (score==total)?score:(r.nextInt(score/8+1)), total);
+			
+			setName(b, "User " + (a+1));
+			setData(b, score, (score==total)?score:(r.nextInt(score/8+1)), total);
 		}
 		
-		//TODO: uncomment when testing connection stuff
-		/*new Thread(){
+		new Thread(){
 			@Override
 			public void run()
 			{
 				WebSocket sock = null;
-				try
+				while(true)
 				{
-					//TODO: point to the correct server
-					sock = new WebSocket("echo.websocket.org", 80, "http://echo.websocket.org/?encoding=text", "permessage-deflate");
-				}
-				catch(IOException e)
-				{
-					e.printStackTrace();
-					System.out.println("A fatal error occurred!");
-					System.exit(0);
-				}
-				BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-				try
-				{
-					while(true)
+					try
 					{
-						if(sock.isClosed())
+						//TODO: point to the correct server
+						sock = new WebSocket("IP", 80, "URL", "permessage-deflate");
+					}
+					catch(IOException e)
+					{
+						e.printStackTrace();
+						System.out.println("Unable to connect, retrying in 5 seconds...");
+						try{Thread.sleep(5000);}catch(InterruptedException e2){}
+						continue;
+					}
+					BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+					try
+					{
+						while(true)
 						{
-							System.out.println("Socket has been closed!");
-							System.exit(0);
-						}
-						while(!in.ready())
-						{
-							try{Thread.sleep(1);}catch(InterruptedException e){}
-						}
-						synchronized(betters)
-						{
-							for(String inLine : in.readLine().split("\n"))
+							if(sock.isClosed())
 							{
-								if(inLine.equals("")) continue;
-								
-								try
+								System.out.println("Socket has been closed!");
+							}
+							while(!in.ready())
+							{
+								try{Thread.sleep(1);}catch(InterruptedException e){}
+							}
+							synchronized(betters)
+							{
+								for(String inLine : in.readLine().split("\n"))
 								{
-									if(inLine.equals("update")) needsRendering = true;
-									else if(inLine.equals("roundstart")) handleRoundStart();
-									else
+									if(inLine.equals("")) continue;
+									
+									try
 									{
-										String[] data = inLine.split(" ");
-										if(data[0].equals("winner"))
+										if(inLine.equals("update")) needsRendering = true;
+										else if(inLine.equals("roundstart")) handleRoundStart();
+										else
 										{
-											lastWinner = PlayerCol.valueOf(data[1]);
-											handleRoundEnd();
-										}
-										else if(data[0].equals("name"))
-										{
-											String name = data[2];
-											for(int a = 3; a < data.length; a++) name += " " + data[a];
-											Game.setName(find(data[1]), name);
-										}
-										else if(data[0].equals("data"))
-										{
-											Game.setData(find(data[1]), Integer.parseInt(data[2]), Integer.parseInt(data[4]), Integer.parseInt(data[3]));
-										}
-										else if(data[0].equals("guess"))
-										{
-											PlayerCol guess = PlayerCol.valueOf(data[2]);
-											find(data[1]).guess = guess;
-										}
-										else if(data[0].equals("drop"))
-										{
-											for(Better b : betters)
+											String[] data = inLine.split(" ");
+											if(data[0].equals("winner"))
 											{
-												if(b.id.equals(data[1]))
+												lastWinner = PlayerCol.valueOf(data[1]);
+												handleRoundEnd();
+											}
+											else if(data[0].equals("name"))
+											{
+												String name = data[2];
+												for(int a = 3; a < data.length; a++) name += " " + data[a];
+												Game.setName(find(data[1]), name);
+											}
+											else if(data[0].equals("data"))
+											{
+												Game.setData(find(data[1]), Integer.parseInt(data[2]), Integer.parseInt(data[4]), Integer.parseInt(data[3]));
+											}
+											else if(data[0].equals("guess"))
+											{
+												PlayerCol guess = PlayerCol.valueOf(data[2]);
+												find(data[1]).guess = guess;
+											}
+											else if(data[0].equals("drop"))
+											{
+												for(Better b : betters)
 												{
-													betters.remove(b);
-													break;
+													if(b.id.equals(data[1]))
+													{
+														betters.remove(b);
+														break;
+													}
 												}
 											}
+											else System.out.println("Unknown command: " + data[0]);
 										}
-										else System.out.println("Unknown command: " + data[0]);
 									}
-								}
-								catch(NumberFormatException e)
-								{
-									e.printStackTrace();
+									catch(NumberFormatException e)
+									{
+										e.printStackTrace();
+									}
 								}
 							}
 						}
 					}
-				}
-				catch(IOException e)
-				{
-					e.printStackTrace();
-					try
+					catch(IOException e)
 					{
-						sock.close();
+						e.printStackTrace();
+						try
+						{
+							sock.close();
+						}
+						catch(IOException e2)
+						{
+							e2.printStackTrace();
+						}
 					}
-					catch(IOException e2)
-					{
-						e2.printStackTrace();
-					}
-					System.out.println("A fatal error occurred!");
-					System.exit(0);
 				}
 			}
-		}.start();*/
+		}.start();
 	}
 	
 	@Override
@@ -429,10 +430,10 @@ public class Game implements ApplicationListener
 		batch.setColor(Color.WHITE);
 		
 		FontHolder.render(batch, FontHolder.getCharList(b.name), x+35, y+33, true);
-		FontHolder.render(batch, FontHolder.getCharList("Acc: "+b.acc+"%"), x+35, y+17, false);
-		FontHolder.render(batch, FontHolder.getCharList("Rating: "+b.uncertaintyAcc+"%"), x+35, y+8, false);
-		FontHolder.render(batch, FontHolder.getCharList("Streak: "+b.streak), x+135, y+17, false);
-		FontHolder.render(batch, FontHolder.getCharList("Score: "+b.score+"/"+b.total), x+135, y+8, false);
+		FontHolder.render(batch, FontHolder.getCharList("Acc: "+floatToStr(b.acc, 2)+"%"), x+47, y+17, false);
+		FontHolder.render(batch, FontHolder.getCharList("Rating: "+floatToStr(b.uncertaintyAcc, 2)+"%"), x+35, y+8, false);
+		FontHolder.render(batch, FontHolder.getCharList("Streak: "+b.streak), x+122, y+17, false);
+		FontHolder.render(batch, FontHolder.getCharList("Score: "+b.score+"/"+b.total), x+125, y+8, false);
 		
 		batch.setColor(c);
 	}
@@ -484,29 +485,29 @@ public class Game implements ApplicationListener
 	public void resume()
 	{}
 	
+	public static String floatToStr(float val, int dp)
+	{
+		if(dp <= 0) return ""+(int)val;
+		
+		for(int a = 0; a < dp; a++) val *= 10;
+		int main = (int)val;
+		int dec = 0;
+		for(int a = 0; a < dp; a++)
+		{
+			dec = dec * 10 + main % 10;
+			main /= 10;
+		}
+		
+		String response = ""+dec;
+		while(response.length() < dp) response += "0";
+		return main + "." + response;
+	}
+	
 	public static Texture loadImage(String name)
 	{
 		name = "images/" + name;
 		if(!File.separator.equals("/")) name.replace("/", File.separator);
 		return new Texture(Gdx.files.internal(name + ".png"));
-	}
-	
-	public static String numToStr(double val)
-	{
-		int whole = (int)val;
-		double dec = (double)Math.round((val - whole) * 1000) / 1000;
-		String temp = String.valueOf(whole);
-		String[] digits = temp.split("");
-		String result = "";
-		int mod = digits.length % 3;
-		for(int a = 1; a < digits.length;)
-		{
-			result += digits[a];
-			a++;
-			if(a % 3 == mod && a < digits.length) result += ",";
-		}
-		if(dec > 0) result += "."+String.valueOf(dec).substring(2);
-		return result;
 	}
 	
 	public static Better find(String id)
@@ -521,10 +522,9 @@ public class Game implements ApplicationListener
 		return b;
 	}
 	
-	public static Better setName(Better b, String name)
+	public static void setName(Better b, String name)
 	{
 		b.name = name;
-		return b;
 	}
 	
 	public static void setData(Better b, int score, int streak, int total)
