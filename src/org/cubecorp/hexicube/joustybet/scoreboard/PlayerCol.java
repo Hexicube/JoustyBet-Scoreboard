@@ -4,19 +4,23 @@ import com.badlogic.gdx.graphics.Color;
 
 public enum PlayerCol
 {
-	BLUE(Color.BLUE),
-	YELLOW(Color.YELLOW),
-	GREEN(Color.GREEN),
-	PURPLE(Color.PURPLE),
-	ORANGE(Color.ORANGE),
-	PINK(Color.PINK),
-	CYAN(Color.CYAN),
-	MAGENTA(Color.MAGENTA);
+	BLUE(Color.BLUE,								Color.WHITE),
+	YELLOW(Color.YELLOW,							Color.BLACK),
+	GREEN(Color.GREEN,								Color.BLACK),
+	PURPLE(Color.PURPLE,							Color.BLACK),
+	ORANGE(Color.ORANGE.lerp(Color.BLACK, 0.25f),	Color.BLACK),
+	PINK(new Color(Color.PURPLE).lerp(Color.WHITE, 0.5f),		Color.BLACK),
+	CYAN(Color.CYAN,								Color.BLACK),
+	MAGENTA(Color.MAGENTA,							Color.BLACK);
 	
-	public Color col;
+	public final Color col, textCol, lightCol, darkCol;
 	
-	private PlayerCol(Color c)
+	private PlayerCol(Color c, Color tc)
 	{
 		col = c;
+		textCol = tc;
+		
+		lightCol = new Color(c).lerp(Color.WHITE, 0.5f);
+		darkCol = new Color(c).lerp(Color.BLACK, 0.5f);
 	}
 }
