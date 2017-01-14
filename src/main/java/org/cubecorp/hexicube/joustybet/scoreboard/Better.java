@@ -2,7 +2,7 @@ package org.cubecorp.hexicube.joustybet.scoreboard;
 
 import java.util.Comparator;
 
-public class Better implements Comparable<Better>, Comparator<Better>
+public class Better implements Comparable<Better>
 {
 	public String name, id;
 	public int score, streak, total;
@@ -29,11 +29,5 @@ public class Better implements Comparable<Better>, Comparator<Better>
 		if(o.oldScore != o.score || o.oldTotal != o.total) o.calcAcc();
 		
 		return Float.compare(o.uncertaintyAcc, uncertaintyAcc);
-	}
-	
-	@Override
-	public int compare(Better o1, Better o2)
-	{
-		return Integer.compare(o2.streak, o1.streak);
 	}
 }

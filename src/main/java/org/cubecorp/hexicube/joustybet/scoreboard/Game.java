@@ -33,7 +33,7 @@ public class Game implements ApplicationListener
 	private static SpriteBatch spriteBatch;
 	
 	private static List<Better> betters;
-	private static boolean needsRendering, roundActive;
+	private static boolean roundActive;
 	private static PlayerCol lastWinner;
 	
 	Random r = new Random();
@@ -47,6 +47,7 @@ public class Game implements ApplicationListener
 	@Override
 	public void create()
 	{
+
 		background = loadImage("background");
 		icons = loadImage("icons");
 		
@@ -103,9 +104,7 @@ public class Game implements ApplicationListener
 		Gdx.graphics.setTitle(gameName);
 		
 		betters = new ArrayList<>();
-		
-		needsRendering = false;
-		
+
 		new Thread(){
 			@Override
 			public void run()
@@ -129,7 +128,6 @@ public class Game implements ApplicationListener
                             betters = sa.getBetters();
                             roundActive = sa.isRoundActive();
                             lastWinner = sa.getLastWinner();
-                            needsRendering = true;
                         }
                     });
                     sock.connect();
@@ -155,15 +153,14 @@ public class Game implements ApplicationListener
 	@Override
 	public void render()
 	{
-		if(!needsRendering) return;
-		
+
 		synchronized(betters)
 		{
 			spriteBatch.begin();
 			spriteBatch.setColor(Color.WHITE);
 			spriteBatch.draw(background, 0, 0);
 			
-			betters.sort(betters.get(0));
+			betters.sort(BetterComparator.get());
 			betters.sort(null);
 			
 			int numToShow = Math.min(15, betters.size());
@@ -210,7 +207,7 @@ public class Game implements ApplicationListener
 					}
 				}
 				
-				betters.sort(betters.get(0));
+				betters.sort(BetterComparator.get());
 				
 				int topChain, bottomChain;
 				topChain = betters.get(0).streak;
@@ -328,7 +325,6 @@ public class Game implements ApplicationListener
 			spriteBatch.end();
 		}
 		
-		needsRendering = false;
 	}
 	
 	private static void printData(SpriteBatch batch, Better b, int x, int y)
