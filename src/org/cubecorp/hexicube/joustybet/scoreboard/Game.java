@@ -395,27 +395,26 @@ public class Game implements ApplicationListener
 					
 					if(amount > 0)
 					{
+						if(amount < 3) amount = 3;
+						
 						spriteBatch.setColor(c.col.col);
-						drawPixel(spriteBatch, 273, 172 - a * 22, amount, 20);
+						drawPixel(spriteBatch, 273, 412 - a * 22, amount, 20);
 						
 						spriteBatch.setColor(c.col.lightCol);
-						drawPixel(spriteBatch, 273, 173 - a * 22, 1, 19);
-						drawPixel(spriteBatch, 273, 191 - a * 22, amount, 1);
+						drawPixel(spriteBatch, 273, 413 - a * 22, 1, 19);
+						drawPixel(spriteBatch, 273, 431 - a * 22, amount, 1);
 						
 						spriteBatch.setColor(c.col.darkCol);
-						drawPixel(spriteBatch, 273, 172 - a * 22, amount-1, 1);
-						drawPixel(spriteBatch, 272 + amount, 172 - a * 22, 1, 19);
+						drawPixel(spriteBatch, 273, 412 - a * 22, amount-1, 1);
+						drawPixel(spriteBatch, 272 + amount, 412 - a * 22, 1, 19);
 					}
 					
 					spriteBatch.setColor(c.col.textCol);
-					FontHolder.render(spriteBatch, FontHolder.getCharList(""+c.count), 276, 189 - a*22, true);
+					FontHolder.render(spriteBatch, FontHolder.getCharList(""+c.count), 276, 429 - a*22, true);
 				}
 				
-				if(lastWinner != null)
-				{
-					spriteBatch.setColor(Color.BLACK);
-					FontHolder.render(spriteBatch, FontHolder.getCharList("Previous winner: "+lastWinner), 276, 212, true);
-				}
+				spriteBatch.setColor(Color.BLACK);
+				FontHolder.render(spriteBatch, FontHolder.getCharList((lastWinner == null)?(roundActive?"Game on!":"No winner yet..."):("Previous winner: "+lastWinner)), 276, 253, true);
 			}
 			
 			spriteBatch.end();
@@ -424,7 +423,7 @@ public class Game implements ApplicationListener
 		needsRendering = false;
 	}
 	
-	private void printData(SpriteBatch batch, Better b, int x, int y)
+	private static void printData(SpriteBatch batch, Better b, int x, int y)
 	{
 		Color c = batch.getColor();
 		batch.setColor(Color.WHITE);
