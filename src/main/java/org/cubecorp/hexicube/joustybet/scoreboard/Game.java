@@ -162,6 +162,13 @@ public class Game implements ApplicationListener
 			
 			betters.sort(BetterComparator.get());
 			betters.sort(null);
+
+
+            FontHolder.render(spriteBatch, FontHolder.getCharList("Join in at"), 276, 220, true);
+            FontHolder.render(spriteBatch, FontHolder.getCharList("http://joustybet.com"), 276, 200, true);
+
+            FontHolder.render(spriteBatch, FontHolder.getCharList("Hack by @LtHummus"), 276, 160, true);
+            FontHolder.render(spriteBatch, FontHolder.getCharList("UI by @Hexicube"), 276, 140, true);
 			
 			int numToShow = Math.min(15, betters.size());
 			if(numToShow > 0)
