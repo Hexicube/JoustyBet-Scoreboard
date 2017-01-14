@@ -37,6 +37,12 @@ public class Game implements ApplicationListener
 	private static PlayerCol lastWinner;
 	
 	Random r = new Random();
+
+	final String url;
+
+	public Game(String url) {
+	    this.url = url;
+    }
 	
 	@Override
 	public void create()
@@ -108,7 +114,8 @@ public class Game implements ApplicationListener
                 try
                 {
                     System.out.println("Attempting connection");
-                    sock = IO.socket("http://localhost:5000/board");
+                    System.out.println(String.format("Using URL: '%s'", url));
+                    sock = IO.socket(url);
                     sock.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
                         @Override
                         public void call(Object... objects) {

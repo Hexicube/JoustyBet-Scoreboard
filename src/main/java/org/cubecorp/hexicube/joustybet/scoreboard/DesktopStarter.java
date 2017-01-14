@@ -9,6 +9,11 @@ public class DesktopStarter
 	
 	public static void main(String[] args)
 	{
+
+		if (args.length < 1) {
+            System.err.println("We need a URL to hit");
+            System.exit(5);
+        }
 		LwjglApplicationConfiguration.disableAudio = true;
 		
 		config = new LwjglApplicationConfiguration();
@@ -21,6 +26,6 @@ public class DesktopStarter
 		config.vSyncEnabled = false;
 		config.samples = 1;
 		
-		new LwjglApplication(new Game(), config);
+		new LwjglApplication(new Game(args[0]), config);
 	}
 }
