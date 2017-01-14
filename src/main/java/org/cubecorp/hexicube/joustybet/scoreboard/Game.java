@@ -14,6 +14,10 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.google.gwt.json.client.JSONObject;
+import io.socket.client.IO;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
 
 public class Game implements ApplicationListener
 {
@@ -100,7 +104,7 @@ public class Game implements ApplicationListener
 			Better b = find(""+a);
 			int total = r.nextInt(21)+10;
 			int score = r.nextInt(total);
-			
+
 			setName(b, "User " + (a+1));
 			setData(b, score, (score==total)?score:(r.nextInt(score/8+1)), total);
 		}
@@ -109,102 +113,29 @@ public class Game implements ApplicationListener
 			@Override
 			public void run()
 			{
-				WebSocket sock = null;
-				while(true)
-				{
-					try
-					{
-						//TODO: point to the correct server
-						sock = new WebSocket("IP", 80, "URL", "permessage-deflate");
-					}
-					catch(IOException e)
-					{
-						e.printStackTrace();
-						System.out.println("Unable to connect, retrying in 5 seconds...");
-						try{Thread.sleep(5000);}catch(InterruptedException e2){}
-						continue;
-					}
-					BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-					try
-					{
-						while(true)
-						{
-							if(sock.isClosed())
-							{
-								System.out.println("Socket has been closed!");
-							}
-							while(!in.ready())
-							{
-								try{Thread.sleep(1);}catch(InterruptedException e){}
-							}
-							synchronized(betters)
-							{
-								for(String inLine : in.readLine().split("\n"))
-								{
-									if(inLine.equals("")) continue;
-									
-									try
-									{
-										if(inLine.equals("update")) needsRendering = true;
-										else if(inLine.equals("roundstart")) handleRoundStart();
-										else
-										{
-											String[] data = inLine.split(" ");
-											if(data[0].equals("winner"))
-											{
-												lastWinner = PlayerCol.valueOf(data[1]);
-												handleRoundEnd();
-											}
-											else if(data[0].equals("name"))
-											{
-												String name = data[2];
-												for(int a = 3; a < data.length; a++) name += " " + data[a];
-												Game.setName(find(data[1]), name);
-											}
-											else if(data[0].equals("data"))
-											{
-												Game.setData(find(data[1]), Integer.parseInt(data[2]), Integer.parseInt(data[4]), Integer.parseInt(data[3]));
-											}
-											else if(data[0].equals("guess"))
-											{
-												PlayerCol guess = PlayerCol.valueOf(data[2]);
-												find(data[1]).guess = guess;
-											}
-											else if(data[0].equals("drop"))
-											{
-												for(Better b : betters)
-												{
-													if(b.id.equals(data[1]))
-													{
-														betters.remove(b);
-														break;
-													}
-												}
-											}
-											else System.out.println("Unknown command: " + data[0]);
-										}
-									}
-									catch(NumberFormatException e)
-									{
-										e.printStackTrace();
-									}
-								}
-							}
-						}
-					}
-					catch(IOException e)
-					{
-						e.printStackTrace();
-						try
-						{
-							sock.close();
-						}
-						catch(IOException e2)
-						{
-							e2.printStackTrace();
-						}
-					}
-				}
+				Socket sock = null;
+                try
+                {
+                    System.out.println("Attempting connection");
+                    sock = IO.socket("http://localhost:5000/board");
+                    sock.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+                        @Override
+                        public void call(Object... objects) {
+                            System.out.println("connected to websocket");
+                        }
+                    }).on("data_update", new Emitter.Listener() {
+                        @Override
+                        public void call(Object... objects) {
+                            System.out.println(objects[0]);
+                        }
+                    });
+                    sock.connect();
+                }
+                catch(Exception e)
+                {
+                    e.printStackTrace();
+                    System.out.println("Unable to connect");
+                }
 			}
 		}.start();
 	}
