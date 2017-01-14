@@ -169,6 +169,11 @@ public class Game implements ApplicationListener
 
             FontHolder.render(spriteBatch, FontHolder.getCharList("Hack by @LtHummus"), 276, 160, true);
             FontHolder.render(spriteBatch, FontHolder.getCharList("UI by @Hexicube"), 276, 140, true);
+
+            FontHolder.render(spriteBatch, FontHolder.getCharList("JoustyBet is an unofficial"), 276, 100, true);
+            FontHolder.render(spriteBatch, FontHolder.getCharList("mod for Johann Sebastian"), 276, 80, true);
+            FontHolder.render(spriteBatch, FontHolder.getCharList("Joust. It is not approved"), 276, 60, true);
+            FontHolder.render(spriteBatch, FontHolder.getCharList("by Die Gute Fabrik."), 276, 40, true);
 			
 			int numToShow = Math.min(15, betters.size());
 			if(numToShow > 0)
