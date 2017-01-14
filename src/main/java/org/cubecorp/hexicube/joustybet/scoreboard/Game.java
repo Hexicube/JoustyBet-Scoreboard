@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import com.badlogic.gdx.ApplicationListener;
@@ -31,7 +32,7 @@ public class Game implements ApplicationListener
 	private static Texture background, icons, pixel;
 	private static SpriteBatch spriteBatch;
 	
-	private static ArrayList<Better> betters;
+	private static List<Better> betters;
 	private static boolean needsRendering, roundActive;
 	private static PlayerCol lastWinner;
 	
@@ -95,19 +96,9 @@ public class Game implements ApplicationListener
 		
 		Gdx.graphics.setTitle(gameName);
 		
-		betters = new ArrayList<Better>();
+		betters = new ArrayList<>();
 		
-		needsRendering = true;
-		
-		for(int a = 0; a < 500; a++)
-		{
-			Better b = find(""+a);
-			int total = r.nextInt(21)+10;
-			int score = r.nextInt(total);
-
-			setName(b, "User " + (a+1));
-			setData(b, score, (score==total)?score:(r.nextInt(score/8+1)), total);
-		}
+		needsRendering = false;
 		
 		new Thread(){
 			@Override
@@ -127,6 +118,11 @@ public class Game implements ApplicationListener
                         @Override
                         public void call(Object... objects) {
                             System.out.println(objects[0]);
+                            StateAdapter sa = new StateAdapter((String)objects[0]);
+                            betters = sa.getBetters();
+                            roundActive = sa.isRoundActive();
+                            lastWinner = sa.getLastWinner();
+                            needsRendering = true;
                         }
                     });
                     sock.connect();
@@ -152,32 +148,6 @@ public class Game implements ApplicationListener
 	@Override
 	public void render()
 	{
-		counter++;
-		if(counter == 100)
-		{
-			counter = 0;
-			if(roundActive)
-			{
-				PlayerCol[] list = PlayerCol.values();
-				lastWinner = list[r.nextInt(list.length)];
-				handleRoundEnd();
-			}
-			else handleRoundStart();
-			needsRendering = true;
-		}
-		if(!roundActive && counter > 5)
-		{
-			PlayerCol[] list = PlayerCol.values();
-			for(Better b : betters)
-			{
-				if(b.guess == null && r.nextInt(90-counter) == 0)
-				{
-					b.guess = list[r.nextInt(list.length)];
-					needsRendering = true;
-				}
-			}
-		}
-		
 		if(!needsRendering) return;
 		
 		synchronized(betters)
