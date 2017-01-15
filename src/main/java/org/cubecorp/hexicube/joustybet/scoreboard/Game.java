@@ -1,11 +1,10 @@
 package org.cubecorp.hexicube.joustybet.scoreboard;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
 
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
@@ -14,6 +13,9 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import io.socket.client.IO;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
 
 public class Game implements ApplicationListener
 {
@@ -24,19 +26,28 @@ public class Game implements ApplicationListener
 	
 	public static final String gameName = "JoustyBet Scoreboard";
 	
-	private static Texture background, icons, pixel;
+	private static Texture background, chartBackground, icons, pixel;
 	private static SpriteBatch spriteBatch;
 	
-	private static ArrayList<Better> betters;
-	private static boolean needsRendering, roundActive;
+	private static List<Better> betters;
+	private static boolean roundActive;
 	private static PlayerCol lastWinner;
 	
 	Random r = new Random();
+
+	final String url;
+
+	public Game(String url) {
+	    this.url = url;
+    }
+	
+	private static char[][] displayText;
 	
 	@Override
 	public void create()
 	{
 		background = loadImage("background");
+		chartBackground = loadImage("chartbackground");
 		icons = loadImage("icons");
 		
 		accuracyIcons = new IconHandler[]{
@@ -88,123 +99,75 @@ public class Game implements ApplicationListener
 		spriteBatch = new SpriteBatch();
 		
 		FontHolder.prep();
+		displayText = new char[][]{
+			FontHolder.getCharList("Join in at"),
+            FontHolder.getCharList("http://joustybet.com"),
+            FontHolder.getCharList(""),
+            FontHolder.getCharList("Hack by @LtHummus"),
+            FontHolder.getCharList("UI by @Hexicube"),
+            FontHolder.getCharList(""),
+            FontHolder.getCharList("JoustyBet is an unofficial"),
+            FontHolder.getCharList("mod for Johann Sebastian"),
+            FontHolder.getCharList("Joust. It is not approved"),
+            FontHolder.getCharList("by Die Gute Fabrik."),
+		};
 		
 		Gdx.graphics.setTitle(gameName);
 		
-		betters = new ArrayList<Better>();
-		
-		needsRendering = true;
-		
-		for(int a = 0; a < 500; a++)
-		{
-			Better b = find(""+a);
-			int total = r.nextInt(21)+10;
-			int score = r.nextInt(total);
-			
-			setName(b, "User " + (a+1));
-			setData(b, score, (score==total)?score:(r.nextInt(score/8+1)), total);
-		}
-		
+		betters = new ArrayList<>();
+
 		new Thread(){
 			@Override
 			public void run()
 			{
-				WebSocket sock = null;
-				while(true)
-				{
-					try
+				Socket sock = null;
+                try
+                {
+                    System.out.println("Attempting connection");
+                    System.out.println(String.format("Using URL: '%s'", url));
+                    sock = IO.socket(url);
+                    sock.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+                        @Override
+                        public void call(Object... objects) {
+                            System.out.println("connected to websocket");
+                        }
+                    }).on("data_update", new Emitter.Listener() {
+                        @Override
+                        public void call(Object... objects) {
+                            System.out.println(objects[0]);
+                            StateAdapter sa = new StateAdapter((String)objects[0]);
+                            betters = sa.getBetters();
+                            roundActive = sa.isRoundActive();
+                            lastWinner = sa.getLastWinner();
+                            
+                            renderCounter = 2;
+                            fullUpdate = true;
+                        }
+                    }).on("data_vote", new Emitter.Listener()
 					{
-						//TODO: point to the correct server
-						sock = new WebSocket("IP", 80, "URL", "permessage-deflate");
-					}
-					catch(IOException e)
-					{
-						e.printStackTrace();
-						System.out.println("Unable to connect, retrying in 5 seconds...");
-						try{Thread.sleep(5000);}catch(InterruptedException e2){}
-						continue;
-					}
-					BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-					try
-					{
-						while(true)
+						@Override
+						public void call(Object... objects)
 						{
-							if(sock.isClosed())
-							{
-								System.out.println("Socket has been closed!");
-							}
-							while(!in.ready())
-							{
-								try{Thread.sleep(1);}catch(InterruptedException e){}
-							}
-							synchronized(betters)
-							{
-								for(String inLine : in.readLine().split("\n"))
-								{
-									if(inLine.equals("")) continue;
-									
-									try
-									{
-										if(inLine.equals("update")) needsRendering = true;
-										else if(inLine.equals("roundstart")) handleRoundStart();
-										else
-										{
-											String[] data = inLine.split(" ");
-											if(data[0].equals("winner"))
-											{
-												lastWinner = PlayerCol.valueOf(data[1]);
-												handleRoundEnd();
-											}
-											else if(data[0].equals("name"))
-											{
-												String name = data[2];
-												for(int a = 3; a < data.length; a++) name += " " + data[a];
-												Game.setName(find(data[1]), name);
-											}
-											else if(data[0].equals("data"))
-											{
-												Game.setData(find(data[1]), Integer.parseInt(data[2]), Integer.parseInt(data[4]), Integer.parseInt(data[3]));
-											}
-											else if(data[0].equals("guess"))
-											{
-												PlayerCol guess = PlayerCol.valueOf(data[2]);
-												find(data[1]).guess = guess;
-											}
-											else if(data[0].equals("drop"))
-											{
-												for(Better b : betters)
-												{
-													if(b.id.equals(data[1]))
-													{
-														betters.remove(b);
-														break;
-													}
-												}
-											}
-											else System.out.println("Unknown command: " + data[0]);
-										}
-									}
-									catch(NumberFormatException e)
-									{
-										e.printStackTrace();
-									}
-								}
-							}
+							System.out.println(objects[0]);
+					        Scanner scan = new Scanner((String)objects[0]);
+					        while (scan.hasNextLine()) {
+					            String curr = scan.nextLine();
+					            String[] parts = curr.split("\\s+", 2);
+					            find(parts[0]).guess = PlayerCol.getFromString(parts[1]);
+					        }
+					        scan.close();
+					        
+					        renderCounter = 2;
+					        //Don't set fullUpdate, so that it does a full update if data_update was recently called.
 						}
-					}
-					catch(IOException e)
-					{
-						e.printStackTrace();
-						try
-						{
-							sock.close();
-						}
-						catch(IOException e2)
-						{
-							e2.printStackTrace();
-						}
-					}
-				}
+					});
+                    sock.connect();
+                }
+                catch(Exception e)
+                {
+                    e.printStackTrace();
+                    System.out.println("Unable to connect");
+                }
 			}
 		}.start();
 	}
@@ -217,47 +180,102 @@ public class Game implements ApplicationListener
 	public void pause()
 	{}
 	
-	private int counter;
+	private static int renderCounter = 2;
+	private static boolean fullUpdate = true;
+	
 	@Override
 	public void render()
 	{
-		counter++;
-		if(counter == 100)
-		{
-			counter = 0;
-			if(roundActive)
-			{
-				PlayerCol[] list = PlayerCol.values();
-				lastWinner = list[r.nextInt(list.length)];
-				handleRoundEnd();
-			}
-			else handleRoundStart();
-			needsRendering = true;
-		}
-		if(!roundActive && counter > 5)
-		{
-			PlayerCol[] list = PlayerCol.values();
-			for(Better b : betters)
-			{
-				if(b.guess == null && r.nextInt(90-counter) == 0)
-				{
-					b.guess = list[r.nextInt(list.length)];
-					needsRendering = true;
-				}
-			}
-		}
-		
-		if(!needsRendering) return;
+		if(renderCounter == 0) return;
+		renderCounter--;
 		
 		synchronized(betters)
 		{
 			spriteBatch.begin();
+			
 			spriteBatch.setColor(Color.WHITE);
-			spriteBatch.draw(background, 0, 0);
+			if(fullUpdate) spriteBatch.draw(background, 0, 0);
+			else spriteBatch.draw(chartBackground, 0, 0);
 			
-			betters.sort(betters.get(0));
+			ArrayList<PlayerColCount> counts = new ArrayList<PlayerColCount>();
+			int sum = 0;
+			
+			PlayerCol[] cols = PlayerCol.values();
+			for(PlayerCol c : cols) counts.add(new PlayerColCount(c));
+			for(Better b : betters)
+			{
+				if(b.guess != null)
+				{
+					for(int a = 0; a < cols.length; a++)
+					{
+						if(b.guess == cols[a])
+						{
+							for(PlayerColCount c : counts)
+							{
+								if(c.col == cols[a])
+								{
+									c.count++;
+									sum++;
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			if(roundActive) counts.sort(null);
+			int largest = 0;
+			for(PlayerColCount c : counts) largest = Math.max(largest, c.count);
+			for(int a = 0; a < counts.size(); a++)
+			{
+				PlayerColCount c = counts.get(a);
+				int amount = 254;
+				if(sum > 0) amount = c.count * amount / largest;
+				
+				if(amount > 0)
+				{
+					if(amount < 3) amount = 3;
+					
+					spriteBatch.setColor(c.col.col);
+					drawPixel(spriteBatch, 273, 412 - a * 22, amount, 20);
+					
+					spriteBatch.setColor(c.col.lightCol);
+					drawPixel(spriteBatch, 273, 413 - a * 22, 1, 19);
+					drawPixel(spriteBatch, 273, 431 - a * 22, amount, 1);
+					
+					spriteBatch.setColor(c.col.darkCol);
+					drawPixel(spriteBatch, 273, 412 - a * 22, amount-1, 1);
+					drawPixel(spriteBatch, 272 + amount, 412 - a * 22, 1, 19);
+				}
+				
+				spriteBatch.setColor(c.col.textCol);
+				FontHolder.render(spriteBatch, FontHolder.getCharList(""+c.count), 276, 429 - a*22, true);
+			}
+			
+			spriteBatch.setColor(Color.BLACK);
+			FontHolder.render(spriteBatch, FontHolder.getCharList((lastWinner == null)?(roundActive?"Game on!":"No winner yet..."):("Previous winner: "+lastWinner)), 276, 253, true);
+			
+			if(!fullUpdate)
+			{
+				spriteBatch.end();
+				return;
+			}
+			
+			betters.sort(BetterComparator.get());
 			betters.sort(null);
-			
+
+            spriteBatch.setColor(Color.BLACK);
+
+            int y = 228;
+            for(char[] cList : displayText)
+            {
+            	FontHolder.render(spriteBatch, cList, 275, y, true);
+            	y -= 20;
+            }
+
+            spriteBatch.setColor(Color.WHITE);
+
 			int numToShow = Math.min(15, betters.size());
 			if(numToShow > 0)
 			{
@@ -302,7 +320,7 @@ public class Game implements ApplicationListener
 					}
 				}
 				
-				betters.sort(betters.get(0));
+				betters.sort(BetterComparator.get());
 				
 				int topChain, bottomChain;
 				topChain = betters.get(0).streak;
@@ -356,71 +374,12 @@ public class Game implements ApplicationListener
 						chainIcons[0].render(spriteBatch, icons, 749, 549 - a*38);
 					}
 				}
-				
-				ArrayList<PlayerColCount> counts = new ArrayList<PlayerColCount>();
-				int sum = 0;
-				
-				PlayerCol[] cols = PlayerCol.values();
-				for(PlayerCol c : cols) counts.add(new PlayerColCount(c));
-				for(Better b : betters)
-				{
-					if(b.guess != null)
-					{
-						for(int a = 0; a < cols.length; a++)
-						{
-							if(b.guess == cols[a])
-							{
-								for(PlayerColCount c : counts)
-								{
-									if(c.col == cols[a])
-									{
-										c.count++;
-										sum++;
-										break;
-									}
-								}
-							}
-						}
-					}
-				}
-				
-				if(roundActive) counts.sort(null);
-				int largest = 0;
-				for(PlayerColCount c : counts) largest = Math.max(largest, c.count);
-				for(int a = 0; a < counts.size(); a++)
-				{
-					PlayerColCount c = counts.get(a);
-					int amount = 254;
-					if(sum > 0) amount = c.count * amount / largest;
-					
-					if(amount > 0)
-					{
-						if(amount < 3) amount = 3;
-						
-						spriteBatch.setColor(c.col.col);
-						drawPixel(spriteBatch, 273, 412 - a * 22, amount, 20);
-						
-						spriteBatch.setColor(c.col.lightCol);
-						drawPixel(spriteBatch, 273, 413 - a * 22, 1, 19);
-						drawPixel(spriteBatch, 273, 431 - a * 22, amount, 1);
-						
-						spriteBatch.setColor(c.col.darkCol);
-						drawPixel(spriteBatch, 273, 412 - a * 22, amount-1, 1);
-						drawPixel(spriteBatch, 272 + amount, 412 - a * 22, 1, 19);
-					}
-					
-					spriteBatch.setColor(c.col.textCol);
-					FontHolder.render(spriteBatch, FontHolder.getCharList(""+c.count), 276, 429 - a*22, true);
-				}
-				
-				spriteBatch.setColor(Color.BLACK);
-				FontHolder.render(spriteBatch, FontHolder.getCharList((lastWinner == null)?(roundActive?"Game on!":"No winner yet..."):("Previous winner: "+lastWinner)), 276, 253, true);
 			}
 			
 			spriteBatch.end();
 		}
 		
-		needsRendering = false;
+		if(renderCounter == 0) fullUpdate = false;
 	}
 	
 	private static void printData(SpriteBatch batch, Better b, int x, int y)
@@ -428,49 +387,13 @@ public class Game implements ApplicationListener
 		Color c = batch.getColor();
 		batch.setColor(Color.WHITE);
 		
-		FontHolder.render(batch, FontHolder.getCharList(b.name), x+35, y+33, true);
+		FontHolder.render(batch, b.nameChars, x+35, y+33, true);
 		FontHolder.render(batch, FontHolder.getCharList("Acc: "+floatToStr(b.acc, 2)+"%"), x+47, y+17, false);
 		FontHolder.render(batch, FontHolder.getCharList("Rating: "+floatToStr(b.uncertaintyAcc, 2)+"%"), x+35, y+8, false);
 		FontHolder.render(batch, FontHolder.getCharList("Streak: "+b.streak), x+122, y+17, false);
 		FontHolder.render(batch, FontHolder.getCharList("Score: "+b.score+"/"+b.total), x+125, y+8, false);
 		
 		batch.setColor(c);
-	}
-	
-	private static void handleRoundStart()
-	{
-		roundActive = true;
-		for(Better b : betters)
-		{
-			b.guessed = false;
-		}
-		lastWinner = null;
-	}
-	
-	private static void handleRoundEnd()
-	{
-		roundActive = false;
-		for(Better b : betters)
-		{
-			if(b.guess != null)
-			{
-				b.guessed = true;
-				if(b.guess == lastWinner)
-				{
-					b.correct = true;
-					b.score++;
-					b.streak++;
-				}
-				else
-				{
-					b.correct = false;
-					b.streak = 0;
-				}
-				b.total++;
-			}
-			else b.guessed = false;
-			b.guess = null;
-		}
 	}
 	
 	@Override

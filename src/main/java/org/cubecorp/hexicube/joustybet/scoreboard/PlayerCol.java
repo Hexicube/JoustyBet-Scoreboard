@@ -33,6 +33,14 @@ public enum PlayerCol
 	}
 	
 	public final Color col, textCol, lightCol, darkCol;
+
+	public static PlayerCol getFromString(String input) {
+	    if ("NONE".equals(input.toUpperCase())) {
+	        return null;
+        } else {
+	        return PlayerCol.valueOf(input);
+        }
+    }
 	
 	private PlayerCol(Color main, Color text)
 	{
