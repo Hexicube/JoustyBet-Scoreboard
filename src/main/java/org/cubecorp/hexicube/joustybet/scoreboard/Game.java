@@ -163,6 +163,8 @@ public class Game implements ApplicationListener
 			betters.sort(BetterComparator.get());
 			betters.sort(null);
 
+            spriteBatch.setColor(Color.BLACK);
+
 
             FontHolder.render(spriteBatch, FontHolder.getCharList("Join in at"), 276, 220, true);
             FontHolder.render(spriteBatch, FontHolder.getCharList("http://joustybet.com"), 276, 200, true);
@@ -174,7 +176,9 @@ public class Game implements ApplicationListener
             FontHolder.render(spriteBatch, FontHolder.getCharList("mod for Johann Sebastian"), 276, 80, true);
             FontHolder.render(spriteBatch, FontHolder.getCharList("Joust. It is not approved"), 276, 60, true);
             FontHolder.render(spriteBatch, FontHolder.getCharList("by Die Gute Fabrik."), 276, 40, true);
-			
+
+            spriteBatch.setColor(Color.WHITE);
+
 			int numToShow = Math.min(15, betters.size());
 			if(numToShow > 0)
 			{
