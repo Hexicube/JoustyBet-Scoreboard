@@ -2,6 +2,7 @@ package org.cubecorp.hexicube.joustybet.scoreboard;
 
 public class Better implements Comparable<Better>
 {
+	public char[] nameChars;
 	public String name, id;
 	public int score, streak, total;
 	private int oldScore, oldTotal;

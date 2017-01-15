@@ -52,6 +52,7 @@ public class StateAdapter {
         b.guess = PlayerCol.getFromString(parts[3].toUpperCase());
         b.total = Integer.parseInt(parts[4]);
         b.name = parts[5];
+        b.nameChars = FontHolder.getCharList(b.name);
 
         betters.add(b);
     }

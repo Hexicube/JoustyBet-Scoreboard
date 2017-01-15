@@ -40,10 +40,11 @@ public class Game implements ApplicationListener
 	    this.url = url;
     }
 	
+	private static char[][] displayText;
+	
 	@Override
 	public void create()
 	{
-
 		background = loadImage("background");
 		icons = loadImage("icons");
 		
@@ -96,6 +97,18 @@ public class Game implements ApplicationListener
 		spriteBatch = new SpriteBatch();
 		
 		FontHolder.prep();
+		displayText = new char[][]{
+			FontHolder.getCharList("Join in at"),
+            FontHolder.getCharList("http://joustybet.com"),
+            FontHolder.getCharList(""),
+            FontHolder.getCharList("Hack by @LtHummus"),
+            FontHolder.getCharList("UI by @Hexicube"),
+            FontHolder.getCharList(""),
+            FontHolder.getCharList("JoustyBet is an unofficial"),
+            FontHolder.getCharList("mod for Johann Sebastian"),
+            FontHolder.getCharList("Joust. It is not approved"),
+            FontHolder.getCharList("by Die Gute Fabrik."),
+		};
 		
 		Gdx.graphics.setTitle(gameName);
 		
@@ -160,17 +173,12 @@ public class Game implements ApplicationListener
 
             spriteBatch.setColor(Color.BLACK);
 
-
-            FontHolder.render(spriteBatch, FontHolder.getCharList("Join in at"), 276, 220, true);
-            FontHolder.render(spriteBatch, FontHolder.getCharList("http://joustybet.com"), 276, 200, true);
-
-            FontHolder.render(spriteBatch, FontHolder.getCharList("Hack by @LtHummus"), 276, 160, true);
-            FontHolder.render(spriteBatch, FontHolder.getCharList("UI by @Hexicube"), 276, 140, true);
-
-            FontHolder.render(spriteBatch, FontHolder.getCharList("JoustyBet is an unofficial"), 276, 100, true);
-            FontHolder.render(spriteBatch, FontHolder.getCharList("mod for Johann Sebastian"), 276, 80, true);
-            FontHolder.render(spriteBatch, FontHolder.getCharList("Joust. It is not approved"), 276, 60, true);
-            FontHolder.render(spriteBatch, FontHolder.getCharList("by Die Gute Fabrik."), 276, 40, true);
+            int y = 218;
+            for(char[] cList : displayText)
+            {
+            	FontHolder.render(spriteBatch, cList, 275, y, true);
+            	y -= 20;
+            }
 
             spriteBatch.setColor(Color.WHITE);
 
@@ -343,7 +351,7 @@ public class Game implements ApplicationListener
 		Color c = batch.getColor();
 		batch.setColor(Color.WHITE);
 		
-		FontHolder.render(batch, FontHolder.getCharList(b.name), x+35, y+33, true);
+		FontHolder.render(batch, b.nameChars, x+35, y+33, true);
 		FontHolder.render(batch, FontHolder.getCharList("Acc: "+floatToStr(b.acc, 2)+"%"), x+47, y+17, false);
 		FontHolder.render(batch, FontHolder.getCharList("Rating: "+floatToStr(b.uncertaintyAcc, 2)+"%"), x+35, y+8, false);
 		FontHolder.render(batch, FontHolder.getCharList("Streak: "+b.streak), x+122, y+17, false);
