@@ -45,7 +45,7 @@ public class DesktopStarter
 		config.backgroundFPS = 20;
 		config.resizable = false;
 		config.vSyncEnabled = false;
-		config.samples = 1;
+		config.samples = 2;
 
 		if (cmd.hasOption("fullscreen")) {
             config.fullscreen = true;

@@ -137,6 +137,7 @@ public class Game implements ApplicationListener
                             betters = sa.getBetters();
                             roundActive = sa.isRoundActive();
                             lastWinner = sa.getLastWinner();
+                            renderCounter = 2;
                         }
                     });
                     sock.connect();
@@ -158,10 +159,12 @@ public class Game implements ApplicationListener
 	public void pause()
 	{}
 	
+	private static int renderCounter = 2;
 	@Override
 	public void render()
 	{
-
+		if(renderCounter == 0) return;
+		renderCounter--;
 		synchronized(betters)
 		{
 			spriteBatch.begin();
