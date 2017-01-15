@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
 
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
@@ -25,7 +26,7 @@ public class Game implements ApplicationListener
 	
 	public static final String gameName = "JoustyBet Scoreboard";
 	
-	private static Texture background, icons, pixel;
+	private static Texture background, chartBackground, icons, pixel;
 	private static SpriteBatch spriteBatch;
 	
 	private static List<Better> betters;
@@ -46,6 +47,7 @@ public class Game implements ApplicationListener
 	public void create()
 	{
 		background = loadImage("background");
+		chartBackground = loadImage("chartbackground");
 		icons = loadImage("icons");
 		
 		accuracyIcons = new IconHandler[]{
@@ -137,9 +139,28 @@ public class Game implements ApplicationListener
                             betters = sa.getBetters();
                             roundActive = sa.isRoundActive();
                             lastWinner = sa.getLastWinner();
+                            
                             renderCounter = 2;
+                            fullUpdate = true;
                         }
-                    });
+                    }).on("data_vote", new Emitter.Listener()
+					{
+						@Override
+						public void call(Object... objects)
+						{
+							System.out.println(objects[0]);
+					        Scanner scan = new Scanner((String)objects[0]);
+					        while (scan.hasNextLine()) {
+					            String curr = scan.nextLine();
+					            String[] parts = curr.split("\\s+", 2);
+					            find(parts[0]).guess = PlayerCol.getFromString(parts[1]);
+					        }
+					        scan.close();
+					        
+					        renderCounter = 2;
+					        //Don't set fullUpdate, so that it does a full update if data_update was recently called.
+						}
+					});
                     sock.connect();
                 }
                 catch(Exception e)
@@ -160,23 +181,93 @@ public class Game implements ApplicationListener
 	{}
 	
 	private static int renderCounter = 2;
+	private static boolean fullUpdate = true;
+	
 	@Override
 	public void render()
 	{
 		if(renderCounter == 0) return;
 		renderCounter--;
+		
 		synchronized(betters)
 		{
 			spriteBatch.begin();
+			
 			spriteBatch.setColor(Color.WHITE);
-			spriteBatch.draw(background, 0, 0);
+			if(fullUpdate) spriteBatch.draw(background, 0, 0);
+			else spriteBatch.draw(chartBackground, 0, 0);
+			
+			ArrayList<PlayerColCount> counts = new ArrayList<PlayerColCount>();
+			int sum = 0;
+			
+			PlayerCol[] cols = PlayerCol.values();
+			for(PlayerCol c : cols) counts.add(new PlayerColCount(c));
+			for(Better b : betters)
+			{
+				if(b.guess != null)
+				{
+					for(int a = 0; a < cols.length; a++)
+					{
+						if(b.guess == cols[a])
+						{
+							for(PlayerColCount c : counts)
+							{
+								if(c.col == cols[a])
+								{
+									c.count++;
+									sum++;
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			if(roundActive) counts.sort(null);
+			int largest = 0;
+			for(PlayerColCount c : counts) largest = Math.max(largest, c.count);
+			for(int a = 0; a < counts.size(); a++)
+			{
+				PlayerColCount c = counts.get(a);
+				int amount = 254;
+				if(sum > 0) amount = c.count * amount / largest;
+				
+				if(amount > 0)
+				{
+					if(amount < 3) amount = 3;
+					
+					spriteBatch.setColor(c.col.col);
+					drawPixel(spriteBatch, 273, 412 - a * 22, amount, 20);
+					
+					spriteBatch.setColor(c.col.lightCol);
+					drawPixel(spriteBatch, 273, 413 - a * 22, 1, 19);
+					drawPixel(spriteBatch, 273, 431 - a * 22, amount, 1);
+					
+					spriteBatch.setColor(c.col.darkCol);
+					drawPixel(spriteBatch, 273, 412 - a * 22, amount-1, 1);
+					drawPixel(spriteBatch, 272 + amount, 412 - a * 22, 1, 19);
+				}
+				
+				spriteBatch.setColor(c.col.textCol);
+				FontHolder.render(spriteBatch, FontHolder.getCharList(""+c.count), 276, 429 - a*22, true);
+			}
+			
+			spriteBatch.setColor(Color.BLACK);
+			FontHolder.render(spriteBatch, FontHolder.getCharList((lastWinner == null)?(roundActive?"Game on!":"No winner yet..."):("Previous winner: "+lastWinner)), 276, 253, true);
+			
+			if(!fullUpdate)
+			{
+				spriteBatch.end();
+				return;
+			}
 			
 			betters.sort(BetterComparator.get());
 			betters.sort(null);
 
             spriteBatch.setColor(Color.BLACK);
 
-            int y = 218;
+            int y = 228;
             for(char[] cList : displayText)
             {
             	FontHolder.render(spriteBatch, cList, 275, y, true);
@@ -283,70 +374,12 @@ public class Game implements ApplicationListener
 						chainIcons[0].render(spriteBatch, icons, 749, 549 - a*38);
 					}
 				}
-				
-				ArrayList<PlayerColCount> counts = new ArrayList<PlayerColCount>();
-				int sum = 0;
-				
-				PlayerCol[] cols = PlayerCol.values();
-				for(PlayerCol c : cols) counts.add(new PlayerColCount(c));
-				for(Better b : betters)
-				{
-					if(b.guess != null)
-					{
-						for(int a = 0; a < cols.length; a++)
-						{
-							if(b.guess == cols[a])
-							{
-								for(PlayerColCount c : counts)
-								{
-									if(c.col == cols[a])
-									{
-										c.count++;
-										sum++;
-										break;
-									}
-								}
-							}
-						}
-					}
-				}
-				
-				if(roundActive) counts.sort(null);
-				int largest = 0;
-				for(PlayerColCount c : counts) largest = Math.max(largest, c.count);
-				for(int a = 0; a < counts.size(); a++)
-				{
-					PlayerColCount c = counts.get(a);
-					int amount = 254;
-					if(sum > 0) amount = c.count * amount / largest;
-					
-					if(amount > 0)
-					{
-						if(amount < 3) amount = 3;
-						
-						spriteBatch.setColor(c.col.col);
-						drawPixel(spriteBatch, 273, 412 - a * 22, amount, 20);
-						
-						spriteBatch.setColor(c.col.lightCol);
-						drawPixel(spriteBatch, 273, 413 - a * 22, 1, 19);
-						drawPixel(spriteBatch, 273, 431 - a * 22, amount, 1);
-						
-						spriteBatch.setColor(c.col.darkCol);
-						drawPixel(spriteBatch, 273, 412 - a * 22, amount-1, 1);
-						drawPixel(spriteBatch, 272 + amount, 412 - a * 22, 1, 19);
-					}
-					
-					spriteBatch.setColor(c.col.textCol);
-					FontHolder.render(spriteBatch, FontHolder.getCharList(""+c.count), 276, 429 - a*22, true);
-				}
-				
-				spriteBatch.setColor(Color.BLACK);
-				FontHolder.render(spriteBatch, FontHolder.getCharList((lastWinner == null)?(roundActive?"Game on!":"No winner yet..."):("Previous winner: "+lastWinner)), 276, 253, true);
 			}
 			
 			spriteBatch.end();
 		}
 		
+		if(renderCounter == 0) fullUpdate = false;
 	}
 	
 	private static void printData(SpriteBatch batch, Better b, int x, int y)
