@@ -1,7 +1,5 @@
 package org.cubecorp.hexicube.joustybet.scoreboard;
 
-import java.util.Comparator;
-
 public class Better implements Comparable<Better>
 {
 	public String name, id;

@@ -1,9 +1,6 @@
 package org.cubecorp.hexicube.joustybet.scoreboard;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -15,7 +12,6 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.google.gwt.json.client.JSONObject;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
@@ -149,7 +145,6 @@ public class Game implements ApplicationListener
 	public void pause()
 	{}
 	
-	private int counter;
 	@Override
 	public void render()
 	{
@@ -355,42 +350,6 @@ public class Game implements ApplicationListener
 		FontHolder.render(batch, FontHolder.getCharList("Score: "+b.score+"/"+b.total), x+125, y+8, false);
 		
 		batch.setColor(c);
-	}
-	
-	private static void handleRoundStart()
-	{
-		roundActive = true;
-		for(Better b : betters)
-		{
-			b.guessed = false;
-		}
-		lastWinner = null;
-	}
-	
-	private static void handleRoundEnd()
-	{
-		roundActive = false;
-		for(Better b : betters)
-		{
-			if(b.guess != null)
-			{
-				b.guessed = true;
-				if(b.guess == lastWinner)
-				{
-					b.correct = true;
-					b.score++;
-					b.streak++;
-				}
-				else
-				{
-					b.correct = false;
-					b.streak = 0;
-				}
-				b.total++;
-			}
-			else b.guessed = false;
-			b.guess = null;
-		}
 	}
 	
 	@Override

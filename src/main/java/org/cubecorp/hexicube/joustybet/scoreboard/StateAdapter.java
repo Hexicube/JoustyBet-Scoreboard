@@ -29,6 +29,7 @@ public class StateAdapter {
                     addBetter(parts[1]);
             }
         }
+        scan.close();
     }
 
     public StateAdapter(String data) {
